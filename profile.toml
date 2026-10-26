@@ -1,0 +1,44 @@
+username = "shuhashi0352"
+title    = "Who I am"
+birthday = "2001-11-11"
+
+[[section]]
+name = "Shusuke Hashimoto"
+bio = """
+ABOUT ME:
+
+- Graduated IU Bloomington MS in Computational Linguistics
+
+- Machine (LM) Interpretability, Speech Processing, Syntax
+
+- Currently working in industry as a product engineer
+
+- Cherrypicks benefits of AI and joy of coding myself
+
+- "For the love of learning is the root of all growth"
+"""
+items = [
+  ["", ""],
+  ["Languages.Programming", "TypeScript, Python, R"],
+  ["Languages.Computer",    "HTML, CSS, SQL, YAML"],
+  ["Languages.Real",        "Japanese, English, Conversational Russian"],
+  ["", ""],
+  ["Hobbies.Research",      "LLM Interpretability, Compositionality, Probing, Causal Intervention"],
+  ["Hobbies.Personal",      "Golf, Baseball, Table Tennis (watch)"],
+]
+
+[[section]]
+name = "Contact"
+items = [
+  ["Email",    "shuhassy0352@gmail.com"],
+  ["X",        "@hassy_0352"],
+  ["LinkedIn", "linkedin.com/in/shusuke-hashimoto-b06323224"],
+]
+
+[[section]]
+name = "GitHub Stats"
+items = [
+  ["Repos",     "{repos} (Contributed: {contributed})", "Stars",     "{stars}"],
+  ["Commits",   "{commits}",                              "Followers", "{followers}"],
+  ["Lines of Code on GitHub", "{loc} ( {add}++, {del}-- )"],
+]
