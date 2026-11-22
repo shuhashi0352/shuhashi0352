@@ -148,7 +148,7 @@ def contributor_weeks(gh: GitHub, name: str, login: str) -> list[dict]:
     return []
 
 
-SAMPLE_STATS = {"repos": 42, "contributed": 57, "stars": 128, "followers": 64,
+SAMPLE_STATS = {"repos": 42, "contributed": 57, "stars": "-", "followers": "-",
                 "commits": 1234, "add": 98765, "del": 12345, "loc": 86420}
 
 
