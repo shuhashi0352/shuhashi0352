@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""neofetch風のGitHubプロフィールSVGを生成する。
 
-使い方:
-  GH_TOKEN=... python generate.py          # GitHub APIから統計を取得して生成
-  python generate.py --sample              # ダミー値でプレビュー生成（API不要）
-
-トークンは環境変数からのみ読み込み、ログ・出力には一切書き出さない。
-"""
 from __future__ import annotations
 
 import argparse
@@ -44,12 +37,12 @@ THEMES = {
     },
 }
 
-INFO_WIDTH = 62          # 右カラムの文字数
+INFO_WIDTH = 62          
 FONT_SIZE = 16
-CHAR_W = FONT_SIZE * 0.6  # 等幅フォントの1文字幅（概算）
+CHAR_W = FONT_SIZE * 0.6 
 LINE_H = 20
 PAD = 20
-GAP_CHARS = 3            # アスキーアートと情報欄の間隔
+GAP_CHARS = 3            
 
 
 # ---------------------------------------------------------------- GitHub API
@@ -69,7 +62,6 @@ class GitHub:
                 raw = res.read()
                 return res.status, json.loads(raw) if raw else None
         except urllib.error.HTTPError as e:
-            # レスポンス本文やヘッダーは出力しない（トークン漏えい防止）
             raise RuntimeError(f"GitHub API error: HTTP {e.code} ({url.split('?')[0]})") from None
 
     def graphql(self, query: str, variables: dict) -> dict:
@@ -115,7 +107,6 @@ def fetch_stats(gh: GitHub, login: str) -> dict:
             break
         cursor = page["pageInfo"]["endCursor"]
 
-    # コミット数: contributionsCollection は1年単位でしか取れないので年ごとに合計
     created = dt.datetime.fromisoformat(user["createdAt"].replace("Z", "+00:00"))
     now = dt.datetime.now(dt.timezone.utc)
     commits, start = 0, created
@@ -125,7 +116,6 @@ def fetch_stats(gh: GitHub, login: str) -> dict:
         commits += data["user"]["contributionsCollection"]["totalCommitContributions"]
         start = end
 
-    # 追加・削除行数: 自分がオーナーのフォーク以外のリポジトリを集計
     add = dele = 0
     for repo in (r for r in repos if not r["isFork"]):
         weeks = contributor_weeks(gh, repo["nameWithOwner"], login)
@@ -143,7 +133,6 @@ def fetch_stats(gh: GitHub, login: str) -> dict:
 
 
 def contributor_weeks(gh: GitHub, name: str, login: str) -> list[dict]:
-    # 統計はGitHub側で非同期計算されるため、202の間はリトライする
     for _ in range(6):
         status, body = gh.rest(f"/repos/{name}/stats/contributors")
         if status == 202:
@@ -163,7 +152,7 @@ SAMPLE_STATS = {"repos": 42, "contributed": 57, "stars": 128, "followers": 64,
                 "commits": 1234, "add": 98765, "del": 12345, "loc": 86420}
 
 
-# ---------------------------------------------------------------- テキスト整形
+# ---------------------------------------------------------------- Text Formatting
 def _add_months(d: dt.date, n: int) -> dt.date:
     y, m = divmod(d.month - 1 + n, 12)
     year, month = d.year + y, m + 1
@@ -183,12 +172,12 @@ def uptime(birthday: str) -> str:
     return f"{plural(y, 'year')}, {plural(m, 'month')}, {plural(days, 'day')}"
 
 
-Seg = tuple[str, str]  # (テキスト, クラス名)
-PLACEHOLDER = re.compile(r"\{(\w+)\}(\+\+|--)?")  # {add}++ のような接尾辞も同じ色にする
+Seg = tuple[str, str]  
+PLACEHOLDER = re.compile(r"\{(\w+)\}(\+\+|--)?") 
 
 
 def render_value(template: str, values: dict) -> list[Seg]:
-    """テンプレートをセグメントに分解。{add}/{del} は色付け用の専用クラスにする。"""
+    """Break template down into segments"""
     segs, pos = [], 0
     for m in PLACEHOLDER.finditer(template):
         if m.start() > pos:
@@ -208,16 +197,16 @@ def seg_len(segs: list[Seg]) -> int:
 
 
 def kv(key: str, value: list[Seg], width: int) -> list[Seg]:
-    """'. Key: ....... value' を width 文字に揃える"""
+    """'. Key: ....... value' aligns with width"""
     head = [(". ", "dots"), (key, "key"), (":", "text")]
     dots = max(width - seg_len(head) - seg_len(value) - 2, 1)
     return head + [(" " + "." * dots + " ", "dots")] + value
 
 
 def kv_wrapped(key: str, value: list[Seg], width: int) -> list[list[Seg]]:
-    """値が長すぎる場合は ', ' 区切りで折り返し、続きの行を右寄せで並べる"""
+    """Text folding"""
     head_len = len(". ") + len(key) + len(":")
-    room = width - head_len - 4  # 最低2つのドットと前後の空白を確保
+    room = width - head_len - 4 
     if seg_len(value) <= room or len(value) != 1:
         return [kv(key, value, width)]
     parts = value[0][0].split(", ")
@@ -239,9 +228,7 @@ def kv_wrapped(key: str, value: list[Seg], width: int) -> list[list[Seg]]:
 
 
 def doc_lines(text: str) -> list[list[Seg]]:
-    """自己紹介文を docstring 風に描画する。
-    書いた改行はそのまま反映し、長い行だけ折り返す。
-    "- " や "* " で始まる行は、折り返した続きを字下げして箇条書きらしく揃える。"""
+    """Docstring ish self intro"""
     lines: list[list[Seg]] = [[('"""', "dots")]]
     for raw in text.strip("\n").split("\n"):
         raw = raw.rstrip()
@@ -272,11 +259,11 @@ def build_lines(cfg: dict, values: dict) -> list[list[Seg]]:
         for item in section.get("items", []):
             if not item[0]:
                 lines.append([(".", "dots")])
-            elif len(item) == 4:  # 2カラム行: Key: v | Key: v
+            elif len(item) == 4: 
                 left_w = 36
                 left = kv(item[0], render_value(item[1], values), left_w)
                 right = kv(item[2], render_value(item[3], values), INFO_WIDTH - left_w - 1)
-                right[0] = (" ", "dots")  # 右側の先頭 ". " を区切り用の空白に置き換え
+                right[0] = (" ", "dots")
                 lines.append(left + [(" |", "text")] + right)
             else:
                 lines += kv_wrapped(item[0], render_value(item[1], values), INFO_WIDTH)
@@ -286,13 +273,13 @@ def build_lines(cfg: dict, values: dict) -> list[list[Seg]]:
         if any(unicodedata.east_asian_width(ch) in "WF" for ch in text):
             print(f"warn: 全角文字は幅がずれます → {text.strip()[:30]}", file=sys.stderr)
         elif len(text) > INFO_WIDTH:
-            print(f"warn: {INFO_WIDTH}文字を超えています → {text.strip()[:30]}", file=sys.stderr)
+            print(f"warn: Exceeded {INFO_WIDTH} words → {text.strip()[:30]}", file=sys.stderr)
     return lines
 
 
 # ---------------------------------------------------------------- SVG
 def fit(chars: int) -> str:
-    """OSごとの等幅フォントの字幅差を吸収し、行の長さを固定する"""
+    """Fixate length per line"""
     return f' textLength="{chars * CHAR_W:.1f}" lengthAdjust="spacing"' if chars > 1 else ""
 
 
@@ -302,7 +289,6 @@ def svg(art: list[str], info: list[list[Seg]], theme: dict) -> str:
     rows = max(len(art), len(info))
     width = round(info_x + INFO_WIDTH * CHAR_W + PAD)
     height = PAD * 2 + rows * LINE_H
-    # 縦方向は中央揃え
     art_top = (rows - len(art)) // 2
     info_top = (rows - len(info)) // 2
 
@@ -335,13 +321,12 @@ def svg(art: list[str], info: list[list[Seg]], theme: dict) -> str:
 # ---------------------------------------------------------------- main
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--sample", action="store_true", help="APIを使わずダミー値で生成")
+    ap.add_argument("--sample", action="store_true")
     args = ap.parse_args()
 
     cfg = tomllib.loads((ROOT / "profile.toml").read_text(encoding="utf-8"))
     load = lambda f: (ROOT / f).read_text(encoding="utf-8").rstrip("\n").split("\n")
     art = load("ascii.txt")
-    # ライトモード用に明暗反転したアートを別に用意したい場合は ascii_light.txt を置く
     art_light = load("ascii_light.txt") if (ROOT / "ascii_light.txt").exists() else art
 
     if args.sample:
@@ -349,7 +334,7 @@ def main() -> int:
     else:
         token = os.environ.get("GH_TOKEN")
         if not token:
-            print("error: GH_TOKEN が未設定です（--sample でプレビュー可能）", file=sys.stderr)
+            print("error: Please set up GH_TOKEN first (You can preview with --sample)", file=sys.stderr)
             return 1
         stats = fetch_stats(GitHub(token), cfg["username"])
 
